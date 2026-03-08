@@ -8,9 +8,17 @@ def speak(text):
     voices = engine.getProperty('voices') 
     engine.setProperty('voice', voices[0].id)
     engine.setProperty('rate', 174)
-    eel.DisplayMessage(text)
+    # eel calls are optional – they fail when called from background threads
+    # before the browser is fully connected. Voice always works regardless.
+    try:
+        eel.DisplayMessage(text)
+    except Exception:
+        pass
     engine.say(text)
-    eel.receiverText(text)
+    try:
+        eel.receiverText(text)
+    except Exception:
+        pass
     engine.runAndWait()
 
 
@@ -20,7 +28,10 @@ def takecommand():
 
     with sr.Microphone(device_index=1) as source:
         print('listening....')
-        eel.DisplayMessage('listening....')
+        try:
+            eel.DisplayMessage('listening....')
+        except Exception:
+            pass
         r.pause_threshold = 1
         r.adjust_for_ambient_noise(source)
         
@@ -31,10 +42,12 @@ def takecommand():
             return ""
     try:
         print('recognizing')
-        eel.DisplayMessage('recognizing....')
+        try:
+            eel.DisplayMessage('recognizing....')
+        except Exception:
+            pass
         query = r.recognize_google(audio, language='en-in')
         print(f"user said: {query}")
-        eel.DisplayMessage(query)
         time.sleep(2)
        
     except Exception as e:
@@ -45,17 +58,27 @@ def takecommand():
 
 @eel.expose
 def allCommands(message=1):
+    # Wake-words that should NEVER be processed as commands
+    WAKE_PHRASES = ["hey friday", "hey jarvis", "ok friday", "okay friday"]
 
     if message == 1:
+        # Voice input: do NOT display user speech as a chat bubble
         query = takecommand()
         print(query)
-        eel.senderText(query)
     else:
+        # Typed input: show it in chat as a sender bubble
         query = message
-        eel.senderText(query)
-    if not query:
-        speak("I couldn't hear you clearly. Please say that again.")
-        eel.ShowHood()
+        try:
+            eel.senderText(query)
+        except Exception:
+            pass
+
+    # Guard: ignore if empty or is a wake-word phrase
+    if not query or any(w in query.strip() for w in WAKE_PHRASES):
+        try:
+            eel.ShowHood()
+        except Exception:
+            pass
         return
 
     try:
@@ -74,7 +97,7 @@ def allCommands(message=1):
         is_run_solution = "run the solution" in query_text or "run solution" in query_text
         is_submit_solution = "submit the solution" in query_text or "submit solution" in query_text
         is_leetcode = not is_solve_leetcode and not is_open_all and any(word in query_text for word in ["leetcode", "lead code", "leet code"])
-        is_github = "github" in query_text and any(word in query_text for word in ["my", "profile", "show", "check", "how many", "count", "stat", "follower", "following"])
+        is_github = "github" in query_text and any(word in query_text for word in ["my", "profile", "show", "check"])
         
         # Extract search intent safely
         search_target_text = re.sub(r'open\s+.*?\s+and\s+', '', query_text)
@@ -113,8 +136,9 @@ def allCommands(message=1):
             
         elif is_github:
             # PERSONAL PROFILE QUERY: GitHub
-            from engine.features import checkGithub
-            checkGithub(query_text)
+            import webbrowser
+            speak("Showing your GitHub profile on screen")
+            webbrowser.open("https://github.com/TusarGoswami")
             
         elif search_match:
             # WEB SEARCH
@@ -174,4 +198,7 @@ def allCommands(message=1):
     except Exception as e:
         print("error:", e)
     
-    eel.ShowHood()
+    try:
+        eel.ShowHood()
+    except Exception:
+        pass
