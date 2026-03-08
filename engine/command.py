@@ -2,24 +2,40 @@ import pyttsx3
 import speech_recognition as sr
 import eel
 import time
+import threading
+
+_speak_lock = threading.Lock()
 def speak(text):
     text = str(text)
-    engine = pyttsx3.init('sapi5')
-    voices = engine.getProperty('voices') 
-    engine.setProperty('voice', voices[0].id)
-    engine.setProperty('rate', 174)
-    # eel calls are optional – they fail when called from background threads
-    # before the browser is fully connected. Voice always works regardless.
-    try:
-        eel.DisplayMessage(text)
-    except Exception:
-        pass
-    engine.say(text)
-    try:
-        eel.receiverText(text)
-    except Exception:
-        pass
-    engine.runAndWait()
+    
+    with _speak_lock:
+        try:
+            import pythoncom
+            pythoncom.CoInitialize()
+        except ImportError:
+            pass
+
+        try:
+            engine = pyttsx3.init('sapi5')
+            voices = engine.getProperty('voices') 
+            engine.setProperty('voice', voices[0].id)
+            engine.setProperty('rate', 174)
+            # eel calls are optional – they fail when called from background threads
+            # before the browser is fully connected. Voice always works regardless.
+            try:
+                eel.DisplayMessage(text)
+            except Exception:
+                pass
+            engine.say(text)
+            try:
+                eel.receiverText(text)
+            except Exception:
+                pass
+            engine.runAndWait()
+        except RuntimeError as e:
+            print(f"[TTS] RuntimeError: {e} - Retrying silently")
+        except Exception as e:
+            print(f"[TTS] Error: {e}")
 
 
 def takecommand():

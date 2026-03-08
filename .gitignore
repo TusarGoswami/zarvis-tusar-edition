@@ -6,3 +6,8 @@ jarvis.db
 /myenv
 __pycache__
 .vscode/
+
+# Security & Biometrics
+.env
+engine/auth/face_reference.jpg
+engine/auth/voice_model.npy
