@@ -263,78 +263,146 @@ def whatsApp(mobile_no, message, flag, name):
     pyautogui.hotkey('enter')
     speak(jarvis_message)
 
-# chat bot 
-chat_bot_instance = None
-chat_bot_id = None
+# ── AI Chat Backend ──────────────────────────────────────────────────────────
+# Primary  : Google Gemini – tries models in order of free-tier availability
+# Fallback : Wikipedia (only if the result is actually relevant to the query)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_gemini_client = None
+
+# Models tried in order – tested and confirmed available for this API key
+GEMINI_MODELS = [
+    "gemini-2.5-flash",        # ✅ confirmed working
+    "gemini-2.0-flash-001",    # stable snapshot
+    "gemini-2.0-flash",        # latest (may hit quota)
+]
+
+_SYSTEM_PROMPT = (
+    "You are Zarvis, a smart and friendly AI assistant. "
+    "Keep answers concise and spoken-friendly (2-4 sentences max). "
+    "No markdown, no bullet points — plain natural spoken English only."
+)
+
+def _get_gemini_client():
+    global _gemini_client
+    if _gemini_client is not None:
+        return _gemini_client
+    try:
+        from google import genai
+        from engine.config import GEMINI_API_KEY
+        if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
+            return None
+        _gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        print("[ChatBot] Gemini client ready ✅")
+        return _gemini_client
+    except Exception as e:
+        print(f"[ChatBot] Gemini init error: {e}")
+        return None
+
+
+def _gemini_ask(user_input):
+    """Try each model in GEMINI_MODELS; on 429 wait the suggested retry delay."""
+    client = _get_gemini_client()
+    if not client:
+        return None
+
+    full_prompt = f"{_SYSTEM_PROMPT}\n\nUser: {user_input}\nZarvis:"
+
+    for model_name in GEMINI_MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=full_prompt
+            )
+            text = response.text.strip()
+            if text:
+                print(f"[ChatBot] {model_name} ▶ {text}")
+                return text
+        except Exception as e:
+            err = str(e)
+            if "429" in err:
+                # Extract retry delay if provided (e.g. "retryDelay: '16s'")
+                import re
+                delay_match = re.search(r"'(\d+)s'", err)
+                delay = int(delay_match.group(1)) + 1 if delay_match else 5
+                print(f"[ChatBot] {model_name} quota hit – waiting {delay}s then trying next model...")
+                time.sleep(delay)
+            else:
+                print(f"[ChatBot] {model_name} error: {e}")
+
+    return None  # all models failed
+
+
+def _wikipedia_ask(user_input):
+    """
+    Search Wikipedia only for clear factual/entity queries.
+    Returns None if the result doesn't seem relevant to what was asked.
+    """
+    try:
+        import wikipedia
+        wikipedia.set_lang("en")
+
+        # Search first to get the most relevant page title
+        results = wikipedia.search(user_input, results=3)
+        if not results:
+            return None
+
+        # Try each search result until we find a relevant one
+        query_words = set(
+            w.lower() for w in user_input.split()
+            if len(w) > 3 and w.lower() not in
+            {"what","when","where","which","that","this","have","does","with","from","tell","about","please"}
+        )
+
+        for title in results:
+            try:
+                summary = wikipedia.summary(title, sentences=2, auto_suggest=False)
+                summary_lower = summary.lower()
+                # Relevance check: at least 1 query keyword must appear in the result
+                if any(w in summary_lower for w in query_words):
+                    print(f"[ChatBot] Wikipedia ({title}) ▶ {summary}")
+                    return summary.strip()
+            except Exception:
+                continue
+
+        return None  # nothing relevant found
+    except Exception as e:
+        print(f"[ChatBot] Wikipedia error: {e}")
+        return None
+
 
 def chatBot(query, speak_out=True):
-    global chat_bot_instance, chat_bot_id
-    user_input = query.lower()
-    
-    if chat_bot_instance is None:
-        try:
-            from engine.config import HUGGINGFACE_EMAIL, HUGGINGFACE_PASSWORD
-            from hugchat.login import Login
-            
-            # Use credentials to login
-            sign = Login(HUGGINGFACE_EMAIL, HUGGINGFACE_PASSWORD)
-            cookies = sign.login()
-            
-            # Save cookies tracking to local directory
-            cookie_path_dir = "./cookies_snapshot"
-            sign.saveCookiesToDir(cookie_path_dir)
-            
-            chat_bot_instance = hugchat.ChatBot(cookies=cookies.get_dict())
-            
-        except Exception as e:
-            # HuggingFace blocks automatic bot logins now via Cloudflare, 
-            # so we silently fallback instantly to the working exported cookies.json
-            try:
-                chat_bot_instance = hugchat.ChatBot(cookie_path=r"engine\cookies.json")
-            except Exception as cookie_e:
-                error_msg = "Unable to connect to HuggingFace. Please update cookies.json or config.py."
-                print(error_msg, cookie_e)
-                speak("I am unable to connect to my brain. Please check my configuration.")
-                return error_msg
-                
-        # Create a single conversation ID for the session to maintain chat context
-        if chat_bot_instance is not None:
-            chat_bot_id = chat_bot_instance.new_conversation()
-            chat_bot_instance.change_conversation(chat_bot_id)
+    """
+    Answer any question or task.
+    Priority: Gemini (model chain) → Wikipedia (relevance-checked) → fallback msg.
+    """
+    user_input = query.strip()
 
-    if chat_bot_instance is not None:
-        # stream=False → get the full response in one shot instead of streaming.
-        # Streaming (the default) frequently drops mid-response causing
-        # "Stream of responses has abruptly ended" errors.
-        max_retries = 2
-        for attempt in range(max_retries):
-            try:
-                response = chat_bot_instance.chat(user_input, web_search=False, stream=False)
-                response_text = str(response).strip()
-                if response_text:
-                    print(f"[ChatBot] {response_text}")
-                    if speak_out:
-                        speak(response_text)
-                    return response_text
-            except Exception as e:
-                err = str(e)
-                print(f"[ChatBot] Attempt {attempt+1} failed: {err}")
-                if attempt < max_retries - 1:
-                    # Reset conversation and retry on stream errors
-                    try:
-                        chat_bot_id = chat_bot_instance.new_conversation()
-                        chat_bot_instance.change_conversation(chat_bot_id)
-                    except Exception:
-                        pass
-                else:
-                    fallback = "I had trouble connecting to my brain. Please try again."
-                    print(f"[ChatBot] All retries failed.")
-                    if speak_out:
-                        speak(fallback)
-                    return fallback
-        return "No response received."
+    # ── 1. Google Gemini (tries multiple models) ──────────────────────────────
+    result = _gemini_ask(user_input)
+    if result:
+        if speak_out:
+            speak(result)
+        return result
+
+    # ── 2. Wikipedia (relevance-validated) ───────────────────────────────────
+    result = _wikipedia_ask(user_input)
+    if result:
+        if speak_out:
+            speak(result)
+        return result
+
+    # ── 3. Final fallback ─────────────────────────────────────────────────────
+    if not _get_gemini_client():
+        msg = ("I need a Gemini API key to answer. "
+               "Please add your free key to engine/config.py under GEMINI_API_KEY.")
     else:
-        return "Chatbot not initialized."
+        msg = "I'm sorry, I couldn't find an answer right now. Please try again in a moment."
+    print(f"[ChatBot] fallback ▶ {msg}")
+    if speak_out:
+        speak(msg)
+    return msg
+
 
 def solveLeetcode(query):
     import re
