@@ -27,7 +27,7 @@ def start():
 
         # ── Step 1: Face Authentication ───────────────────────────────────────
         _speak_async("Ready for Face Authentication. Please look at the camera.")
-        face_flag = recoganize.AuthenticateFace(timeout_seconds=20)
+        face_flag = recoganize.AuthenticateFace(timeout_seconds=45)
 
         if face_flag != 1:
             _speak_async("Face Authentication Failed. Access Denied.")

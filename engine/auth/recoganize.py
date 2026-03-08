@@ -14,6 +14,10 @@ import os
 import time
 import threading
 
+# Suppress TensorFlow C++ backend logs
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 CASCADE_FILE     = r"engine\auth\haarcascade_frontalface_default.xml"
 REFERENCE_PHOTO  = r"engine\auth\face_reference.jpg"
 SIMILARITY_THRESHOLD = 0.68   # DeepFace distance < 0.68 → same person
@@ -104,7 +108,7 @@ def CaptureReferencePhoto() -> bool:
     return saved
 
 
-def AuthenticateFace(timeout_seconds: int = 20) -> int:
+def AuthenticateFace(timeout_seconds: int = 45) -> int:
     """
     Use DeepFace to verify the person in front of the camera is the owner.
 
@@ -134,7 +138,7 @@ def AuthenticateFace(timeout_seconds: int = 20) -> int:
         _df_result["verified"] = v
         _df_result["dist"]     = d
 
-    print(f"[FaceAuth] Camera open — you have {timeout_seconds}s to authenticate.")
+    print(f"[FaceAuth] Engine warming up... Camera open — {timeout_seconds}s to authenticate.")
 
     while True:
         ret, frame = cam.read()
