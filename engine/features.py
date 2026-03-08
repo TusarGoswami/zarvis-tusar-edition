@@ -303,13 +303,36 @@ def chatBot(query, speak_out=True):
             chat_bot_instance.change_conversation(chat_bot_id)
 
     if chat_bot_instance is not None:
-        # Get AI response
-        response = chat_bot_instance.chat(user_input)
-        response_text = str(response)
-        print(response_text)
-        if speak_out:
-            speak(response_text)
-        return response_text
+        # stream=False → get the full response in one shot instead of streaming.
+        # Streaming (the default) frequently drops mid-response causing
+        # "Stream of responses has abruptly ended" errors.
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                response = chat_bot_instance.chat(user_input, web_search=False, stream=False)
+                response_text = str(response).strip()
+                if response_text:
+                    print(f"[ChatBot] {response_text}")
+                    if speak_out:
+                        speak(response_text)
+                    return response_text
+            except Exception as e:
+                err = str(e)
+                print(f"[ChatBot] Attempt {attempt+1} failed: {err}")
+                if attempt < max_retries - 1:
+                    # Reset conversation and retry on stream errors
+                    try:
+                        chat_bot_id = chat_bot_instance.new_conversation()
+                        chat_bot_instance.change_conversation(chat_bot_id)
+                    except Exception:
+                        pass
+                else:
+                    fallback = "I had trouble connecting to my brain. Please try again."
+                    print(f"[ChatBot] All retries failed.")
+                    if speak_out:
+                        speak(fallback)
+                    return fallback
+        return "No response received."
     else:
         return "Chatbot not initialized."
 

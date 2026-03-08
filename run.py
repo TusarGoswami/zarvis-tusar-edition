@@ -53,7 +53,7 @@ def listenHotword(q):
         # Pause so command audio isn't re-detected as a wake phrase
         time.sleep(8)
 
-    listen_for_wakeword(on_wake, device_index=1)
+    listen_for_wakeword(on_wake)
 
 
 # ─────────────────────────────────────────────

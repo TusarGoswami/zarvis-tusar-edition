@@ -23,20 +23,24 @@ def speak(text):
 
 
 def takecommand():
-
     r = sr.Recognizer()
 
-    with sr.Microphone(device_index=1) as source:
+    with sr.Microphone() as source:
         print('listening....')
         try:
             eel.DisplayMessage('listening....')
         except Exception:
             pass
-        r.pause_threshold = 1
-        r.adjust_for_ambient_noise(source)
-        
+
+        # Calibrate to current ambient noise level
+        r.adjust_for_ambient_noise(source, duration=0.5)
+        r.dynamic_energy_threshold = False
+        r.energy_threshold = max(r.energy_threshold * 1.2, 150)
+        r.pause_threshold = 1.2        # wait 1.2 s of silence before ending
+        r.non_speaking_duration = 0.4
+
         try:
-            audio = r.listen(source, 10, 6)
+            audio = r.listen(source, timeout=10, phrase_time_limit=12)
         except Exception as e:
             print("microphone error:", e)
             return ""

@@ -14,17 +14,33 @@ _is_listening_for_command = False
 _lock = threading.Lock()
 
 
-def listen_for_wakeword(on_wake_callback, device_index=1):
+def listen_for_wakeword(on_wake_callback, device_index=None):
     """
     Runs indefinitely, listening for any of the WAKE_WORDS.
     When detected, calls on_wake_callback() exactly once.
     """
     global _is_listening_for_command
     r = sr.Recognizer()
-    r.energy_threshold = 2500       # Sensitivity – raise if false activations
-    r.dynamic_energy_threshold = True
-    r.pause_threshold = 0.6
 
+    # ── One-time calibration BEFORE the loop ──────────────────────────────────
+    # adjust_for_ambient_noise inside the loop causes the threshold to spike
+    # wildly if you speak during the 0.3 s calibration window.
+    print("[Wake-Word] Calibrating microphone (stay quiet for 1 second)...")
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source, duration=1)
+
+    # Lock the threshold in place – dynamic adjustment inside a short loop
+    # causes enormous swings (threshold can jump to 900+ when noisy).
+    r.dynamic_energy_threshold = False
+    # Add a small margin on top of the ambient level so soft background sounds
+    # don't trip the recognizer, but normal speech comfortably gets through.
+    r.energy_threshold = max(r.energy_threshold * 1.2, 150)
+
+    # Give more time for natural speech – 0.6 s pauses cut off words mid-sentence
+    r.pause_threshold = 1.2        # wait 1.2 s of silence before ending phrase
+    r.non_speaking_duration = 0.4  # exclude short silences inside a phrase
+
+    print(f"[Wake-Word] Ready! Threshold locked at {r.energy_threshold:.0f}")
     print("[Wake-Word] Listening for 'Hey Friday'...")
 
     while True:
@@ -37,10 +53,10 @@ def listen_for_wakeword(on_wake_callback, device_index=1):
             continue
 
         try:
-            with sr.Microphone(device_index=device_index) as source:
-                r.adjust_for_ambient_noise(source, duration=0.3)
-                # Short timeout so we loop quickly and stay responsive
-                audio = r.listen(source, timeout=4, phrase_time_limit=4)
+            with sr.Microphone() as source:
+                # timeout   → how long to wait for speech to START (seconds)
+                # phrase_time_limit → max length of the captured phrase (seconds)
+                audio = r.listen(source, timeout=10, phrase_time_limit=12)
 
             text = r.recognize_google(audio, language="en-in").lower()
             print(f"[Wake-Word] Heard: {text}")
@@ -55,11 +71,13 @@ def listen_for_wakeword(on_wake_callback, device_index=1):
                 print("[Wake-Word] ↩ Returning to idle mode...")
 
         except sr.WaitTimeoutError:
-            pass        # Normal – nothing was said
+            pass        # Normal – nothing was said in the timeout window
         except sr.UnknownValueError:
-            pass        # Could not understand audio
+            pass        # Audio captured but Google couldn't understand it
+        except KeyboardInterrupt:
+            print("[Wake-Word] Shutting down listener...")
+            break       # Exit cleanly on Ctrl+C
         except Exception as e:
-            # E.g. device errors – wait briefly then retry
             print(f"[Wake-Word] Error: {e}")
             time.sleep(1)
 
