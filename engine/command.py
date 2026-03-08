@@ -59,8 +59,23 @@ def allCommands(message=1):
         return
 
     try:
+        import re
         
-        if "open" in query:
+        # Strip confusing starting phrases like "open google chrome and "
+        search_query = re.sub(r'open\s+.*?\s+and\s+', '', query)
+        
+        # Extract the exact search intent
+        search_match = re.search(r'\b(search for|search|google|find)\b\s+(.*)', search_query)
+        
+        if "lead code" in query or "leetcode" in query:
+            from engine.features import checkLeetcode
+            checkLeetcode()
+            
+        elif search_match:
+            from engine.features import searchGoogle
+            searchGoogle(search_match.group(2).strip())
+            
+        elif "open" in query:
             from engine.features import openCommand
             openCommand(query)
         elif "on youtube" in query:

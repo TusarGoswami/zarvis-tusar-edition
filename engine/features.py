@@ -66,7 +66,58 @@ def openCommand(query):
         except:
             speak("some thing went wrong")
 
-       
+def searchGoogle(search_term):
+    import urllib.parse
+    import webbrowser
+    from engine.command import speak
+    
+    encoded_search = urllib.parse.quote_plus(search_term)
+    url = f"https://www.google.com/search?q={encoded_search}"
+    speak(f"Searching Google for {search_term}")
+    webbrowser.open(url)
+
+def checkLeetcode():
+    import requests
+    from engine.command import speak
+    from engine.config import LEETCODE_USERNAME
+    
+    url = 'https://leetcode.com/graphql'
+    query = '''
+    query getUserProfile($username: String!) {
+      matchedUser(username: $username) {
+        submitStats: submitStatsGlobal {
+          acSubmissionNum {
+            difficulty
+            count
+          }
+        }
+      }
+    }
+    '''
+    variables = {'username': LEETCODE_USERNAME}
+    payload = {
+        'query': query,
+        'variables': variables
+    }
+    
+    speak(f"Checking your LeetCode profile for {LEETCODE_USERNAME}...")
+    try:
+        response = requests.post(url, json=payload, headers={'Content-Type': 'application/json', 'Referer': 'https://leetcode.com'})
+        data = response.json()
+        
+        if 'data' in data and data['data'].get('matchedUser') is not None:
+            stats = data['data']['matchedUser']['submitStats']['acSubmissionNum']
+            solved = next((item['count'] for item in stats if item['difficulty'] == 'All'), 0)
+            speak(f"You have solved a total of {solved} problems on LeetCode. Great job!")
+            
+            # Optionally actually open LeetCode for them
+            import webbrowser
+            webbrowser.open(f"https://leetcode.com/u/{LEETCODE_USERNAME}/")
+        else:
+            speak("Sorry, I could not find that LeetCode user name. Please check the config file.")
+    except Exception as e:
+        print(f"LeetCode API Error: {e}")
+        speak("I encountered an error while trying to fetch your LeetCode stats.")
 
 def PlayYoutube(query):
     search_term = extract_yt_term(query)
