@@ -119,6 +119,43 @@ def checkLeetcode():
         print(f"LeetCode API Error: {e}")
         speak("I encountered an error while trying to fetch your LeetCode stats.")
 
+def checkGithub(query):
+    import requests
+    import webbrowser
+    from engine.command import speak
+    from engine.config import GITHUB_USERNAME
+    
+    speak(f"Fetching your GitHub profile statistics...")
+    url = f"https://api.github.com/users/{GITHUB_USERNAME}"
+    
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            public_repos = data.get("public_repos", 0)
+            followers = data.get("followers", 0)
+            following = data.get("following", 0)
+            
+            # Check intent dynamically
+            query_lower = query.lower()
+            if "follower" in query_lower:
+                speak(f"You currently have {followers} followers on GitHub.")
+            elif "following" in query_lower or "follow" in query_lower:
+                speak(f"You are currently following {following} people on GitHub.")
+            elif "repo" in query_lower or "stat" in query_lower:
+                speak(f"You currently have {public_repos} public repositories on GitHub.")
+            else:
+                speak(f"You have {public_repos} repositories and {followers} followers on your GitHub profile.")
+            
+            # Show the profile on screen
+            webbrowser.open(f"https://github.com/{GITHUB_USERNAME}")
+        else:
+            speak("I could not reach GitHub right now. Please try again later.")
+            print(f"GitHub API Error: {response.text}")
+    except Exception as e:
+        print(f"GitHub Request Error: {e}")
+        speak("I encountered an error trying to fetch your GitHub stats.")
+
 def PlayYoutube(query):
     search_term = extract_yt_term(query)
     speak("Playing "+search_term+" on YouTube")
@@ -230,7 +267,7 @@ def whatsApp(mobile_no, message, flag, name):
 chat_bot_instance = None
 chat_bot_id = None
 
-def chatBot(query):
+def chatBot(query, speak_out=True):
     global chat_bot_instance, chat_bot_id
     user_input = query.lower()
     
@@ -270,10 +307,53 @@ def chatBot(query):
         # Get AI response
         response = chat_bot_instance.chat(user_input)
         print(response)
-        speak(response)
+        if speak_out:
+            speak(response)
         return response
     else:
         return "Chatbot not initialized."
+
+def solveLeetcode(query):
+    import re
+    import webbrowser
+    from engine.command import speak
+
+    # Extract language
+    lang_match = re.search(r'\bin\s+([a-zA-Z\+\#]+)', query.lower())
+    language = lang_match.group(1).capitalize() if lang_match else "Python"
+    
+    # Extract problem name/number
+    problem_text = query.lower()
+    for phrase in ["solve lead code problem", "solve problem", "solve leetcode problem", "leetcode problem", "solve leetcode", "solve lead code", "solve"]:
+        problem_text = problem_text.replace(phrase, "")
+    if " in " in problem_text:
+        problem_text = problem_text.split(" in ")[0]
+        
+    problem_name = problem_text.strip()
+    if not problem_name:
+        speak("I couldn't catch the problem name. Please try again.")
+        return
+        
+    # Generate slug (e.g. "two sum" -> "two-sum")
+    slug = re.sub(r'[^a-z0-9]+', '-', problem_name.lower()).strip('-')
+    
+    url = f"https://leetcode.com/problems/{slug}/"
+    speak(f"Opening LeetCode problem {problem_name} and generating {language} solution...")
+    webbrowser.open(url)
+    
+    # Generate solution using our AI
+    ai_prompt = f"Solve the LeetCode problem '{problem_name}' in {language}. Provide a very brief 1-sentence explanation of the approach, the optimal time complexity, and the code implementation."
+    
+    speak("Thinking of the optimal solution. Please wait...")
+    solution = chatBot(ai_prompt, speak_out=False)
+    
+    print("\n" + "="*50)
+    print(f"LEETCODE SOLUTION: {problem_name.upper()} ({language})")
+    print("="*50)
+    print(solution)
+    print("="*50 + "\n")
+    
+    speak(f"I have generated the {language} solution for {problem_name} and displayed it on your screen.")
 
 # android automation
 
