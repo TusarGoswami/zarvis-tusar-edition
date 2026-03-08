@@ -287,9 +287,8 @@ def chatBot(query, speak_out=True):
             chat_bot_instance = hugchat.ChatBot(cookies=cookies.get_dict())
             
         except Exception as e:
-            print("Automatic login failed (Check email/password in config.py):", e)
-            print("Falling back to reading engine\cookies.json...")
-            
+            # HuggingFace blocks automatic bot logins now via Cloudflare, 
+            # so we silently fallback instantly to the working exported cookies.json
             try:
                 chat_bot_instance = hugchat.ChatBot(cookie_path=r"engine\cookies.json")
             except Exception as cookie_e:
@@ -306,10 +305,11 @@ def chatBot(query, speak_out=True):
     if chat_bot_instance is not None:
         # Get AI response
         response = chat_bot_instance.chat(user_input)
-        print(response)
+        response_text = str(response)
+        print(response_text)
         if speak_out:
-            speak(response)
-        return response
+            speak(response_text)
+        return response_text
     else:
         return "Chatbot not initialized."
 
