@@ -176,17 +176,53 @@ def whatsApp(mobile_no, message, flag, name):
     speak(jarvis_message)
 
 # chat bot 
-def chatBot(query):
-    user_input = query.lower()
-    chatbot = hugchat.ChatBot(cookie_path=r"engine\cookies.json")
+chat_bot_instance = None
+chat_bot_id = None
 
-    # chatbot = hugchat.ChatBot(cookie_path="engine\cookies.json")
-    id = chatbot.new_conversation()
-    chatbot.change_conversation(id)
-    response =  chatbot.chat(user_input)
-    print(response)
-    speak(response)
-    return response
+def chatBot(query):
+    global chat_bot_instance, chat_bot_id
+    user_input = query.lower()
+    
+    if chat_bot_instance is None:
+        try:
+            from engine.config import HUGGINGFACE_EMAIL, HUGGINGFACE_PASSWORD
+            from hugchat.login import Login
+            
+            # Use credentials to login
+            sign = Login(HUGGINGFACE_EMAIL, HUGGINGFACE_PASSWORD)
+            cookies = sign.login()
+            
+            # Save cookies tracking to local directory
+            cookie_path_dir = "./cookies_snapshot"
+            sign.saveCookiesToDir(cookie_path_dir)
+            
+            chat_bot_instance = hugchat.ChatBot(cookies=cookies.get_dict())
+            
+        except Exception as e:
+            print("Automatic login failed (Check email/password in config.py):", e)
+            print("Falling back to reading engine\cookies.json...")
+            
+            try:
+                chat_bot_instance = hugchat.ChatBot(cookie_path=r"engine\cookies.json")
+            except Exception as cookie_e:
+                error_msg = "Unable to connect to HuggingFace. Please update cookies.json or config.py."
+                print(error_msg, cookie_e)
+                speak("I am unable to connect to my brain. Please check my configuration.")
+                return error_msg
+                
+        # Create a single conversation ID for the session to maintain chat context
+        if chat_bot_instance is not None:
+            chat_bot_id = chat_bot_instance.new_conversation()
+            chat_bot_instance.change_conversation(chat_bot_id)
+
+    if chat_bot_instance is not None:
+        # Get AI response
+        response = chat_bot_instance.chat(user_input)
+        print(response)
+        speak(response)
+        return response
+    else:
+        return "Chatbot not initialized."
 
 # android automation
 
