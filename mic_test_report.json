@@ -1,0 +1,119 @@
+[
+    {
+        "index": 0,
+        "name": "Microsoft Sound Mapper - Input",
+        "status": "SUCCESS_ACTIVE",
+        "max_amp": 1188
+    },
+    {
+        "index": 1,
+        "name": "Microphone Array (Intel\u00c2\u00ae Smart ",
+        "status": "SUCCESS_ACTIVE",
+        "max_amp": 797
+    },
+    {
+        "index": 2,
+        "name": "Microsoft Sound Mapper - Output",
+        "status": "skipped"
+    },
+    {
+        "index": 3,
+        "name": "Speaker (2- Realtek(R) Audio)",
+        "status": "skipped"
+    },
+    {
+        "index": 4,
+        "name": "Primary Sound Capture Driver",
+        "status": "SUCCESS_ACTIVE",
+        "max_amp": 32768
+    },
+    {
+        "index": 5,
+        "name": "Microphone Array (Intel\u00c2\u00ae Smart Sound Technology for Digital Microphones)",
+        "status": "SUCCESS_ACTIVE",
+        "max_amp": 32768
+    },
+    {
+        "index": 6,
+        "name": "Primary Sound Driver",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    },
+    {
+        "index": 7,
+        "name": "Speaker (2- Realtek(R) Audio)",
+        "status": "skipped"
+    },
+    {
+        "index": 8,
+        "name": "Speaker (2- Realtek(R) Audio)",
+        "status": "skipped"
+    },
+    {
+        "index": 9,
+        "name": "Microphone Array (Intel\u00c2\u00ae Smart Sound Technology for Digital Microphones)",
+        "status": "SUCCESS_ACTIVE",
+        "max_amp": 1109
+    },
+    {
+        "index": 10,
+        "name": "Speakers 1 (Realtek HD Audio output with SST)",
+        "status": "skipped"
+    },
+    {
+        "index": 11,
+        "name": "Speakers 2 (Realtek HD Audio output with SST)",
+        "status": "skipped"
+    },
+    {
+        "index": 12,
+        "name": "PC Speaker (Realtek HD Audio output with SST)",
+        "status": "skipped"
+    },
+    {
+        "index": 13,
+        "name": "Headphones 1 (Realtek HD Audio 2nd output with SST)",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    },
+    {
+        "index": 14,
+        "name": "Headphones 2 (Realtek HD Audio 2nd output with SST)",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    },
+    {
+        "index": 15,
+        "name": "PC Speaker (Realtek HD Audio 2nd output with SST)",
+        "status": "skipped"
+    },
+    {
+        "index": 16,
+        "name": "Microphone (Realtek HD Audio Mic input)",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    },
+    {
+        "index": 17,
+        "name": "Stereo Mix (Realtek HD Audio Stereo input)",
+        "status": "skipped"
+    },
+    {
+        "index": 18,
+        "name": "Microphone Array 1 ()",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    },
+    {
+        "index": 19,
+        "name": "Microphone Array 2 ()",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    },
+    {
+        "index": 20,
+        "name": "Microphone Array 3 ()",
+        "status": "error",
+        "error_msg": "'NoneType' object has no attribute 'close'"
+    }
+]

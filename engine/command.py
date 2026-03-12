@@ -41,37 +41,46 @@ def speak(text):
 def takecommand():
     r = sr.Recognizer()
 
-    with sr.Microphone() as source:
+    with sr.Microphone(device_index=5) as source:
         print('listening....')
         try:
             eel.DisplayMessage('listening....')
         except Exception:
             pass
 
-        # Calibrate to current ambient noise level
-        r.adjust_for_ambient_noise(source, duration=0.5)
-        r.dynamic_energy_threshold = False
-        r.energy_threshold = max(r.energy_threshold * 1.2, 150)
-        r.pause_threshold = 1.2        # wait 1.2 s of silence before ending
-        r.non_speaking_duration = 0.4
+        # Calibrate to current ambient noise level for 1 second
+        r.adjust_for_ambient_noise(source, duration=0.6)
+        r.dynamic_energy_threshold = True
+        r.pause_threshold = 1.2        # Wait slightly longer to allow pauses in speech
+        r.non_speaking_duration = 0.5  # Prevent cutting off too early from a tiny noise
 
         try:
-            audio = r.listen(source, timeout=10, phrase_time_limit=12)
+            audio = r.listen(source, timeout=10, phrase_time_limit=15)
+        except sr.WaitTimeoutError:
+            # Silently handle the timeout, the user didn't speak
+            return ""
         except Exception as e:
-            print("microphone error:", e)
+            print("microphone loop error:", e)
             return ""
     try:
-        print('recognizing')
         try:
             eel.DisplayMessage('recognizing....')
         except Exception:
             pass
         query = r.recognize_google(audio, language='en-in')
         print(f"user said: {query}")
-        time.sleep(2)
+        time.sleep(1)
        
+    except sr.UnknownValueError:
+        # This happens if it captures background noise (e.g. your mouse click) but no clear words.
+        # We silently return empty string so it gracefully goes back to idle mode.
+        print(" (No words recognized - passing)")
+        return ""
+    except sr.RequestError as e:
+        print(f"recognition error: Could not request results (RequestError); {e}")
+        return ""
     except Exception as e:
-        print("recognition error:", e)
+        print(f"recognition error: {type(e).__name__} - {e}")
         return ""
     
     return query.lower()

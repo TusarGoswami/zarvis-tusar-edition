@@ -78,7 +78,7 @@ def listen_for_wakeword(on_wake_callback, device_index=None):
 
     # ── One-time calibration (stay quiet for ~1 s) ────────────────────────────
     print("[Wake-Word] Calibrating microphone (stay quiet for 1 second)...")
-    with sr.Microphone() as source:
+    with sr.Microphone(device_index=5) as source:
         r.adjust_for_ambient_noise(source, duration=1)
 
     r.dynamic_energy_threshold = False
@@ -98,7 +98,7 @@ def listen_for_wakeword(on_wake_callback, device_index=None):
             continue
 
         try:
-            with sr.Microphone() as source:
+            with sr.Microphone(device_index=5) as source:
                 audio = r.listen(source, timeout=10, phrase_time_limit=8)
 
             text = r.recognize_google(audio, language="en-in").lower()

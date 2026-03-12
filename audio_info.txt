@@ -1,0 +1,19 @@
+--- DEFAULT INPUT DEVICE ---
+Name: Microphone Array (IntelÂ® Smart 
+Index: 1
+Channels: 4
+Sample Rate: 44100.0
+
+--- ALL AVAILABLE AUDIO INPUTS ---
+[0] Microsoft Sound Mapper - Input (Channels: 2, API: 0)
+[1] Microphone Array (IntelÂ® Smart  (Channels: 4, API: 0)
+[4] Primary Sound Capture Driver (Channels: 2, API: 1)
+[5] Microphone Array (IntelÂ® Smart Sound Technology for Digital Microphones) (Channels: 4, API: 1)
+[9] Microphone Array (IntelÂ® Smart Sound Technology for Digital Microphones) (Channels: 2, API: 2)
+[12] PC Speaker (Realtek HD Audio output with SST) (Channels: 2, API: 3)
+[15] PC Speaker (Realtek HD Audio 2nd output with SST) (Channels: 2, API: 3)
+[16] Microphone (Realtek HD Audio Mic input) (Channels: 2, API: 3)
+[17] Stereo Mix (Realtek HD Audio Stereo input) (Channels: 2, API: 3)
+[18] Microphone Array 1 () (Channels: 2, API: 3)
+[19] Microphone Array 2 () (Channels: 2, API: 3)
+[20] Microphone Array 3 () (Channels: 4, API: 3)
